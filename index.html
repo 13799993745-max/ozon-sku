@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Ozon SKU 数据 - 2026-05-29</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f7fa;display:flex;justify-content:center;align-items:center;min-height:100vh;padding:20px}
+.card{background:#fff;border-radius:16px;box-shadow:0 4px 24px rgba(0,0,0,.1);width:480px;overflow:hidden}
+.header{background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;padding:24px 20px;text-align:center}
+.header h1{font-size:20px;margin-bottom:4px}
+.header .time{font-size:13px;opacity:.85}
+.summary{padding:12px 20px;background:#fef9e7;border-bottom:1px solid #f0e68c;font-size:13px;color:#856404}
+.picker{padding:12px 20px;display:flex;align-items:center;gap:8px;background:#f8f9fc;border-bottom:1px solid #eee}
+.picker select{padding:6px 10px;border:1px solid #ddd;border-radius:6px;font-size:14px;flex:1}
+.picker label{font-size:13px;color:#666;white-space:nowrap}
+table{width:100%;border-collapse:collapse}
+th{background:#f0f2f5;padding:10px 16px;text-align:left;font-size:12px;color:#888;border-bottom:2px solid #e8e8e8}
+td{padding:14px 16px;border-bottom:1px solid #f0f0f0;font-size:14px}
+td:first-child,th:first-child{font-weight:500}
+td:nth-child(2),th:nth-child(2){text-align:right;font-weight:bold;font-size:18px;color:#667eea}
+td:nth-child(3),th:nth-child(3){text-align:right;font-size:13px}
+.delta-up{color:#27ae60}
+.delta-down{color:#e74c3c}
+.delta-zero{color:#999}
+.btn{background:#667eea;color:#fff;border:none;padding:8px 20px;border-radius:8px;font-size:13px;cursor:pointer}
+.btn:hover{background:#5a6fd6}
+.btn:disabled{opacity:.5;cursor:wait}
+.status{padding:6px 20px;font-size:12px;color:#999;text-align:center}
+.footer{padding:16px;text-align:center;font-size:12px;color:#999}
+</style>
+</head>
+<body>
+<div class="card">
+<div class="header">
+<h1>📦 Ozon 店铺 SKU</h1>
+<div class="time" id="headerTime">数据更新: 2026-05-29 21:00</div>
+</div>
+<div class="summary" id="summaryBox">
+📊 <b>2026-05-29</b> 较前日(<b>2026-05-28</b>) 新增 <b style="color:#27ae60">0</b> 个SKU
+</div>
+<div class="picker">
+<label>📅 历史:</label>
+<select id="datePicker" onchange="onDateChange()">
+<option value="2026-05-29">2026-05-29</option>
+</select>
+<button class="btn" id="refreshBtn" onclick="refreshLive()" style="margin-left:auto;padding:6px 14px;font-size:12px;">🔄 刷新</button>
+</div>
+<div class="status" id="statusBar"></div>
+<table>
+<thead>
+<tr><th>店铺</th><th style="text-align:right">SKU总数</th><th style="text-align:right">较前日</th></tr>
+</thead>
+<tbody id="table">
+<tr><td>chufan01</td><td style="text-align:right;font-weight:bold;font-size:18px;color:#667eea">369</td><td style="text-align:right" class=""></td></tr><tr><td>chufan02</td><td style="text-align:right;font-weight:bold;font-size:18px;color:#667eea">565</td><td style="text-align:right" class=""></td></tr><tr><td>chufan03</td><td style="text-align:right;font-weight:bold;font-size:18px;color:#667eea">612</td><td style="text-align:right" class=""></td></tr>
+</tbody>
+</table>
+<div class="footer">自动生成: 2026-05-29 21:00:51 | 历史 1 天</div>
+</div>
+<script>
+const HISTORY = {"2026-05-29": {"chufan01": 369, "chufan02": 565, "chufan03": 612}};
+const TODAY = "2026-05-29";
+
+function onDateChange(){
+  const date = document.getElementById('datePicker').value;
+  const data = HISTORY[date];
+  if (!data) return;
+  
+  const prevDate = getPrevDate(date);
+  const prevData = HISTORY[prevDate] || {};
+  
+  let html = '';
+  for (const [name, total] of Object.entries(data)) {
+    const prev = prevData[name];
+    let delta = '', deltaClass = '';
+    if (prev !== undefined) {
+      const diff = total - prev;
+      if (diff > 0) { delta = '↑+' + diff.toLocaleString(); deltaClass = 'delta-up'; }
+      else if (diff < 0) { delta = '↓' + diff.toLocaleString(); deltaClass = 'delta-down'; }
+      else { delta = '—'; deltaClass = 'delta-zero'; }
+    }
+    html += `<tr><td>${name}</td><td style="text-align:right;font-weight:bold;font-size:18px;color:#667eea">${total.toLocaleString()}</td><td style="text-align:right" class="${deltaClass}">${delta}</td></tr>`;
+  }
+  document.getElementById('table').innerHTML = html;
+}
+
+function getPrevDate(dateStr){
+  const d = new Date(dateStr);
+  d.setDate(d.getDate() - 1);
+  return d.toISOString().slice(0,10);
+}
+
+async function refreshLive(){
+  const btn = document.getElementById('refreshBtn');
+  const status = document.getElementById('statusBar');
+  btn.disabled = true;
+  status.textContent = '⏳ 正在连接 Ozon API...';
+  status.style.color = '#999';
+  
+  try {
+    const resp = await fetch('https://ozon-sku-api-xvifmsmtoc.cn-hangzhou.fcapp.run');
+    const data = await resp.json();
+    const stores = data.stores || [];
+    
+    if (stores.length === 0) {
+      status.textContent = '⚠️ 未获取到数据';
+      status.style.color = '#e74c3c';
+      btn.disabled = false;
+      return;
+    }
+    
+    const today = new Date().toISOString().slice(0,10);
+    const prevDate = getPrevDate(today);
+    const prevData = HISTORY[prevDate] || {};
+    
+    // 更新历史
+    const snap = {};
+    stores.forEach(s => snap[s.name] = s.sku_total);
+    HISTORY[today] = snap;
+    
+    // 渲染表格
+    let html = '', totalNew = 0;
+    stores.forEach(s => {
+      const prev = prevData[s.name];
+      let delta = '', deltaClass = '';
+      if (prev !== undefined) {
+        const diff = s.sku_total - prev;
+        totalNew += Math.max(0, diff);
+        if (diff > 0) { delta = '↑+' + diff.toLocaleString(); deltaClass = 'delta-up'; }
+        else if (diff < 0) { delta = '↓' + diff.toLocaleString(); deltaClass = 'delta-down'; }
+        else { delta = '—'; deltaClass = 'delta-zero'; }
+      }
+      html += `<tr><td>${s.name}</td><td style="text-align:right;font-weight:bold;font-size:18px;color:#667eea">${s.sku_total.toLocaleString()}</td><td style="text-align:right" class="${deltaClass}">${delta}</td></tr>`;
+    });
+    
+    document.getElementById('table').innerHTML = html;
+    document.getElementById('summaryBox').innerHTML = `📊 <b>${today}</b> 较前日(<b>${prevDate}</b>) 新增 <b style="color:#27ae60">${totalNew}</b> 个SKU`;
+    document.getElementById('headerTime').textContent = '🟢 实时数据: ' + new Date().toLocaleString('zh-CN');
+    
+    status.textContent = '✅ 实时刷新成功 ' + stores.length + ' 个店铺';
+    status.style.color = '#27ae60';
+    
+    // 更新日期选择器
+    const picker = document.getElementById('datePicker');
+    if (!picker.querySelector('option[value="' + today + '"]')) {
+      const opt = document.createElement('option');
+      opt.value = today;
+      opt.textContent = today;
+      picker.insertBefore(opt, picker.firstChild);
+    }
+    picker.value = today;
+  } catch(e) {
+    status.textContent = '❌ 刷新失败: ' + e.message;
+    status.style.color = '#e74c3c';
+  }
+  btn.disabled = false;
+}
+</script>
+</body>
+</html>
